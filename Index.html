@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>PokéVendas</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(160deg, #b71c1c 0%, #e53935 40%, #1565c0 100%);
+      min-height: 100vh;
+      padding: 24px 14px 48px;
+    }
+    header { text-align: center; margin-bottom: 24px; }
+    header h1 { color: white; font-size: 28px; font-weight: 900; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+    header p  { color: rgba(255,255,255,0.9); font-size: 14px; margin-top: 6px; }
+
+    .card {
+      background: white; border-radius: 22px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      overflow: hidden; max-width: 480px; margin: 0 auto;
+    }
+    .card-body { padding: 20px; }
+
+    #preview-box {
+      background: #fafafa; border: 2.5px dashed #dee2e6;
+      border-radius: 14px; padding: 48px 16px;
+      text-align: center; margin-bottom: 16px;
+    }
+    #preview-box .icon  { font-size: 56px; margin-bottom: 8px; }
+    #preview-box .title { font-weight: 800; color: #343a40; font-size: 17px; }
+    #preview-box .sub   { color: #868e96; font-size: 13px; margin-top: 6px; }
+
+    #preview-img {
+      display: none; width: 100%; max-height: 320px;
+      object-fit: contain; border-radius: 14px;
+      margin-bottom: 16px; background: #000;
+    }
+
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .btn {
+      padding: 16px 12px; border-radius: 12px; border: none;
+      font-size: 15px; font-weight: 800; cursor: pointer;
+      font-family: inherit; display: flex; align-items: center;
+      justify-content: center; gap: 8px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-camera  { background: linear-gradient(135deg,#e53935,#b71c1c); color:white; box-shadow:0 4px 14px rgba(229,57,53,.4); }
+    .btn-gallery { background: white; color:#1565c0; border:2px solid #1565c0 !important; }
+    .btn-analyze {
+      width:100%; padding:16px; border:none; border-radius:12px;
+      background:linear-gradient(135deg,#00c853,#00897b); color:white;
+      font-size:17px; font-weight:900; cursor:pointer; font-family:inherit;
+      box-shadow:0 4px 18px rgba(0,200,83,.4); display:none;
+    }
+    .btn-analyze:disabled { background:#dee2e6; color:#868e96; box-shadow:none; cursor:wait; }
+    .btn-reset {
+      width:100%; margin-top:18px; padding:14px; border:none; border-radius:12px;
+      background:linear-gradient(135deg,#1565c0,#0d47a1); color:white;
+      font-size:15px; font-weight:800; cursor:pointer; font-family:inherit;
+      box-shadow:0 4px 14px rgba(21,101,192,.35); display:none;
+    }
+
+    #loading { display:none; text-align:center; padding:8px 20px 24px; }
+    .spinner {
+      width:44px; height:44px; border:4px solid #e3f2fd;
+      border-top:4px solid #e53935; border-radius:50%;
+      animation:spin .8s linear infinite; margin:0 auto 12px;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    #error-box {
+      display:none; margin:0 0 16px; padding:14px;
+      background:#fff5f5; border-radius:10px;
+      border:1px solid #ffcdd2; color:#c62828;
+      font-weight:700; font-size:14px; line-height:1.5;
+    }
+
+    #result { display:none; animation:fadeIn .4s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+    .badge-ok {
+      background:#e8f5e9; border:1.5px solid #a5d6a7;
+      border-radius:12px; padding:12px 14px; margin-bottom:16px;
+      display:flex; align-items:center; gap:10px;
+    }
+    .badge-cond { border-radius:12px; padding:10px 14px; margin-bottom:16px; }
+    .cond-title { font-weight:800; font-size:14px; color:#212529; }
+    .cond-sub   { font-size:12px; color:#495057; margin-top:4px; }
+
+    .section-label {
+      font-size:12px; font-weight:800; color:#495057;
+      text-transform:uppercase; letter-spacing:.8px; margin-bottom:10px;
+    }
+
+    .field-row {
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; padding:14px 16px; border-radius:12px;
+      background:#f8f9fa; border:1.5px solid #e9ecef; margin-bottom:10px;
+    }
+    .field-row.highlight { background:#fff8e1; border-color:#ffc107; }
+    .field-label { font-size:11px; color:#6c757d; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+    .field-value { font-size:16px; font-weight:800; color:#212529; margin-top:4px; word-break:break-word; }
+
+    .copy-btn {
+      background:#1565c0; color:white; border:none; border-radius:8px;
+      padding:10px 16px; font-size:13px; font-weight:700; cursor:pointer;
+      white-space:nowrap; font-family:inherit; min-width:90px;
+      -webkit-tap-highlight-color:transparent; transition:background .2s;
+    }
+    .copy-btn.copied { background:#00c853; }
+
+    .info-box { background:#f8f9fa; border-radius:10px; padding:12px; margin-top:12px; border:1px solid #e9ecef; }
+    .info-label { font-size:11px; color:#6c757d; font-weight:700; text-transform:uppercase; margin-bottom:6px; }
+    .info-text  { font-size:13px; color:#343a40; line-height:1.7; }
+
+    .tip-box { background:#fff8e1; border-radius:10px; padding:12px; margin-top:10px; border:1px solid #ffe082; display:none; }
+    .tip-label { font-size:12px; color:#f57c00; font-weight:800; margin-bottom:4px; }
+    .tip-text  { font-size:13px; color:#5d4037; }
+
+    #raw-debug {
+      display:none; margin-top:12px; padding:10px;
+      background:#f1f3f5; border-radius:8px;
+      font-size:11px; color:#495057; word-break:break-all;
+      white-space:pre-wrap; max-height:120px; overflow:auto;
+    }
+
+    footer { text-align:center; color:rgba(255,255,255,.7); font-size:11px; margin-top:18px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🔴⚪ PokéVendas</h1>
+  <p>Fotografe a carta e receba os campos prontos</p>
+</header>
+
+<input id="input-camera"  type="file" accept="image/*" capture="environment" style="display:none" />
+<input id="input-gallery" type="file" accept="image/*"                        style="display:none" />
+
+<div class="card">
+  <div class="card-body">
+
+    <div id="preview-box">
+      <div class="icon">📸</div>
+      <div class="title">Tire uma foto da carta</div>
+      <div class="sub">Boa iluminação e carta centralizada</div>
+    </div>
+
+    <img id="preview-img" alt="Carta capturada" />
+
+    <div class="btn-row" id="capture-buttons">
+      <button class="btn btn-camera"  id="btn-camera" >📷 Câmera</button>
+      <button class="btn btn-gallery" id="btn-gallery">🖼️ Galeria</button>
+    </div>
+
+    <button class="btn btn-analyze" id="btn-analyze">⚡ Analisar Carta</button>
+
+    <div id="loading">
+      <div class="spinner"></div>
+      <p style="color:#6c757d;font-size:13px">Identificando carta, condição e preço...</p>
+    </div>
+
+    <div id="error-box"></div>
+    <div id="raw-debug"></div>
+
+    <div id="result">
+      <div class="badge-ok">
+        <span style="font-size:24px">✅</span>
+        <div>
+          <div style="font-weight:800;color:#1b5e20;font-size:14px">Carta identificada!</div>
+          <div style="font-size:12px;color:#2e7d32">Copie cada campo para o MYP Cards</div>
+        </div>
+      </div>
+
+      <div class="badge-cond" id="badge-cond">
+        <div class="cond-title" id="cond-title"></div>
+        <div class="cond-sub"  id="cond-motivo"></div>
+      </div>
+
+      <div class="section-label">📋 Cole estes valores no MYP Cards</div>
+      <div id="fields"></div>
+
+      <div class="info-box">
+        <div class="info-label">Detalhes identificados</div>
+        <div class="info-text" id="info-text"></div>
+      </div>
+
+      <div class="tip-box" id="tip-box">
+        <div class="tip-label">💡 Dica</div>
+        <div class="tip-text" id="tip-text"></div>
+      </div>
+
+      <button class="btn btn-reset" id="btn-reset">📸 Analisar próxima carta</button>
+    </div>
+
+  </div>
+</div>
+
+<footer>Preços estimados pelo mercado BR • Ajuste se necessário</footer>
+
+<script>
+  const COND_MAP = {
+    "Mint/Nova":       { myp:"Novo",              emoji:"✨", color:"#00c853" },
+    "Near Mint":       { myp:"Usado - Muito bom", emoji:"🟢", color:"#69f0ae" },
+    "Levemente Usada": { myp:"Usado - Bom",       emoji:"🟡", color:"#ffd740" },
+    "Com Detalhes":    { myp:"Usado - Aceitável", emoji:"🟠", color:"#ffab40" },
+  };
+
+  let imageBase64    = null;
+  let imageMediaType = "image/jpeg";
+
+  const previewBox   = document.getElementById("preview-box");
+  const previewImg   = document.getElementById("preview-img");
+  const btnCamera    = document.getElementById("btn-camera");
+  const btnGallery   = document.getElementById("btn-gallery");
+  const btnAnalyze   = document.getElementById("btn-analyze");
+  const btnReset     = document.getElementById("btn-reset");
+  const loadingEl    = document.getElementById("loading");
+  const errorBox     = document.getElementById("error-box");
+  const rawDebug     = document.getElementById("raw-debug");
+  const resultEl     = document.getElementById("result");
+  const inputCamera  = document.getElementById("input-camera");
+  const inputGallery = document.getElementById("input-gallery");
+
+  btnCamera.addEventListener("click",  () => inputCamera.click());
+  btnGallery.addEventListener("click", () => inputGallery.click());
+
+  function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl      = ev.target.result;
+      imageBase64        = dataUrl.split(",")[1];
+      imageMediaType     = file.type || "image/jpeg";
+      previewBox.style.display  = "none";
+      previewImg.src            = dataUrl;
+      previewImg.style.display  = "block";
+      btnAnalyze.style.display  = "block";
+      resultEl.style.display    = "none";
+      errorBox.style.display    = "none";
+      rawDebug.style.display    = "none";
+    };
+    reader.readAsDataURL(file);
+  }
+
+  inputCamera.addEventListener("change",  handleFile);
+  inputGallery.addEventListener("change", handleFile);
+
+  /* ---- extrai JSON de qualquer texto que a API retorne ---- */
+  function extractJSON(text) {
+    // 1. tenta JSON puro
+    try { return JSON.parse(text.trim()); } catch(_) {}
+
+    // 2. remove marcadores markdown e tenta de novo
+    const cleaned = text.replace(/```[\w]*\n?/g, "").trim();
+    try { return JSON.parse(cleaned); } catch(_) {}
+
+    // 3. regex para capturar o primeiro bloco { ... }
+    const m = text.match(/\{[\s\S]*?\}/);
+    if (m) {
+      try { return JSON.parse(m[0]); } catch(_) {}
+    }
+
+    // 4. regex gananciosa (nested objects)
+    const m2 = text.match(/\{[\s\S]*\}/);
+    if (m2) {
+      try { return JSON.parse(m2[0]); } catch(_) {}
+    }
+
+    return null;
+  }
+
+  btnAnalyze.addEventListener("click", async () => {
+    if (!imageBase64) return;
+
+    btnAnalyze.disabled     = true;
+    loadingEl.style.display = "block";
+    errorBox.style.display  = "none";
+    rawDebug.style.display  = "none";
+    resultEl.style.display  = "none";
+
+    /* Prompt: pedimos campos individualmente com marcadores claros
+       para facilitar parsing mesmo se o modelo adicionar texto */
+    const prompt = `Você é um especialista em cartas Pokémon TCG em português brasileiro.
+
+Analise a imagem desta carta Pokémon. Responda EXCLUSIVAMENTE com um objeto JSON, sem nenhum texto antes ou depois, sem markdown, sem explicação. Apenas o JSON abaixo preenchido:
+
+{"nome_carta":"?","set_expansao":"?","numero_carta":"?","tipo":"?","raridade":"?","condicao_estimada":"?","motivo_condicao":"?","preco_sugerido_reais":0,"observacoes":"?"}
+
+Regras de preenchimento:
+- nome_carta: nome exato como aparece na carta
+- set_expansao: nome do set ou "Não identificado"
+- numero_carta: ex "190/182" ou "Não identificado"
+- tipo: "Pokémon", "Treinador" ou "Energia"
+- raridade: "Common","Uncommon","Rare","Holo Rare","Ultra Rare","Secret Rare","Full Art","Illustration Rare", etc
+- condicao_estimada: APENAS UM DESTES VALORES EXATOS: "Mint/Nova" | "Near Mint" | "Levemente Usada" | "Com Detalhes"
+- motivo_condicao: 1 frase curta
+- preco_sugerido_reais: número inteiro ou decimal sem aspas. Referência de mercado BR em reais: Common 1-3, Uncommon 3-8, Rare 8-20, Holo Rare 15-80, Ultra Rare 50-300, Secret Rare/Full Art/Illustration Rare 80-600
+- observacoes: dica de venda em 1 frase`;
+
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: imageMediaType, data: imageBase64 } },
+              { type: "text", text: prompt }
+            ]
+          }]
+        })
+      });
+
+      const data = await res.json();
+
+      // coleta todo texto retornado
+      const rawText = (data.content || [])
+        .filter(b => b.type === "text")
+        .map(b => b.text)
+        .join("");
+
+      const parsed = extractJSON(rawText);
+
+      if (!parsed || !parsed.nome_carta) {
+        // mostra o raw para diagnóstico
+        rawDebug.textContent   = "Resposta da API:\n" + rawText;
+        rawDebug.style.display = "block";
+        throw new Error("JSON não encontrado na resposta");
+      }
+
+      renderResult(parsed);
+
+    } catch (err) {
+      console.error(err);
+      errorBox.innerHTML =
+        `⚠️ <b>Erro ao analisar.</b><br>` +
+        `Verifique se a carta está bem visível na foto e tente novamente.<br>` +
+        `<small style="color:#999">${err.message}</small>`;
+      errorBox.style.display = "block";
+    } finally {
+      loadingEl.style.display = "none";
+      btnAnalyze.disabled     = false;
+    }
+  });
+
+  function renderResult(r) {
+    const cond = COND_MAP[r.condicao_estimada] || COND_MAP["Near Mint"];
+
+    const badge = document.getElementById("badge-cond");
+    badge.style.background = cond.color + "25";
+    badge.style.border     = `1.5px solid ${cond.color}`;
+    document.getElementById("cond-title").textContent  = `${cond.emoji} Condição: ${r.condicao_estimada}`;
+    document.getElementById("cond-motivo").textContent = r.motivo_condicao || "";
+
+    const preco = isNaN(Number(r.preco_sugerido_reais))
+      ? "—"
+      : Number(r.preco_sugerido_reais).toFixed(2).replace(".", ",");
+
+    const fields = [
+      { label:"1. Nome do deck / carta", value: r.nome_carta,      highlight:false },
+      { label:"2. Subcategoria",         value:"Carta Avulsa",     highlight:false },
+      { label:"3. Estado",               value: cond.myp,          highlight:false },
+      { label:"4. À Venda",              value:"Ativo (a venda)",  highlight:false },
+      { label:"5. Quantidade",           value:"1",                highlight:false },
+      { label:"6. Preço Unitário R$",    value: preco,             highlight:true  },
+    ];
+
+    const container = document.getElementById("fields");
+    container.innerHTML = "";
+    fields.forEach(f => {
+      const row = document.createElement("div");
+      row.className = "field-row" + (f.highlight ? " highlight" : "");
+      row.innerHTML = `
+        <div style="flex:1;min-width:0">
+          <div class="field-label">${f.label}</div>
+          <div class="field-value">${f.value}</div>
+        </div>
+        <button class="copy-btn" data-value="${f.value}">Copiar</button>`;
+      container.appendChild(row);
+    });
+
+    container.querySelectorAll(".copy-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        navigator.clipboard.writeText(btn.dataset.value).then(() => {
+          btn.textContent = "✓ Copiado";
+          btn.classList.add("copied");
+          setTimeout(() => { btn.textContent = "Copiar"; btn.classList.remove("copied"); }, 1800);
+        });
+      });
+    });
+
+    document.getElementById("info-text").innerHTML =
+      `<b>Set:</b> ${r.set_expansao || "—"}<br>` +
+      `<b>Número:</b> ${r.numero_carta || "—"}<br>` +
+      `<b>Tipo:</b> ${r.tipo || "—"} • <b>Raridade:</b> ${r.raridade || "—"}`;
+
+    if (r.observacoes) {
+      document.getElementById("tip-text").textContent = r.observacoes;
+      document.getElementById("tip-box").style.display = "block";
+    }
+
+    btnReset.style.display    = "block";
+    resultEl.style.display    = "block";
+    btnAnalyze.style.display  = "none";
+  }
+
+  btnReset.addEventListener("click", () => {
+    imageBase64 = null;
+    previewImg.style.display  = "none";
+    previewImg.src            = "";
+    previewBox.style.display  = "block";
+    btnAnalyze.style.display  = "none";
+    btnReset.style.display    = "none";
+    resultEl.style.display    = "none";
+    errorBox.style.display    = "none";
+    rawDebug.style.display    = "none";
+    document.getElementById("tip-box").style.display = "none";
+  });
+</script>
+</body>
+</html>
